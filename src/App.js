@@ -8,8 +8,7 @@ class App extends Component {
     super() 
     this.state = {
       map: tetris.map,
-      // pieces: ['L1', 'L2', 'Z1', 'Z2', 't', 'I', 'Square'],
-      pieces: ['I'],
+      pieces: ['L1', 'L2', 'Z1', 'Z2', 't', 'I', 'Square'],
       colors: ['black', 'gray', 'purple', 'red', 'blue', 'yellow', 'green', 'orange'],
       nextPiece: '',
       currentPiece: '',
