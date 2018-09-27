@@ -8,59 +8,21 @@ class App extends Component {
     super() 
     this.state = {
       map: tetris.map,
-      pieces: ['L1', 'L2', 'Z1', 'Z2', 't', 'I', 'Square'],
+      // pieces: ['L1', 'L2', 'Z1', 'Z2', 't', 'I', 'Square'],
+      pieces: ['I'],
       colors: ['black', 'gray', 'purple', 'red', 'blue', 'yellow', 'green', 'orange'],
       nextPiece: '',
       currentPiece: '',
-      currentDimensions: [],
       direction: '',
       nextColor: '',
       currentColor: '',
       start: false,
       currentCoords: [],
-      startingCoords: {
-        Square: [
-          [[1, 5], [1, 6]],
-          [[2, 5],[2, 6]]
-        ],
-        I: [
-          [[1, 4],[1, 5], [1, 6], [1, 7]],
-          [[2, 4],[2, 5], [2, 6], [2, 7]],
-          [[3, 4],[3, 5], [3, 6], [3, 7]],
-          [[4, 4],[4, 5], [4, 6], [4, 7]],
-        ],
-        all: [
-          [[1, 4],[1, 5],[1, 6]],
-          [[2, 4],[2, 5],[2, 6]],
-          [[3, 4],[3, 5],[3, 6]],
-        ]
-      }
     }
   }
   componentDidMount() {
     this.getNextPiece()
   }
-  // getNextPiece = () => {
-  //   let {pieces, map} = this.state
-  //   let a = ~~(Math.random() * pieces.length)
-  //   let b = ~~(Math.random() * 6) + 2
-  //   let nextPiece = pieces[a]
-  //   let currentPiece = this.state.nextPiece
-  //   let currentColor = this.state.nextColor
-  //   let nextColor = b
-  //   let currentCoords = []
-  //   if(currentPiece) {
-  //     tetris.pieces[currentPiece].c1.forEach((r, i) => {
-  //       r.forEach((c, f) => {
-  //         if(map[1 + i][f + 5] !== 1 && c !== 0){
-  //           map[1 + i][f + 5] = currentColor
-  //           currentCoords.push([1 + i, f + 5])
-  //         }
-  //       })
-  //     })
-  //   }
-  //   this.setState({nextPiece, currentPiece, direction: 'c1', nextColor, currentColor, currentCoords})
-  // }
   getNextPiece = () => {
     let {pieces, map} = this.state
     let a = ~~(Math.random() * pieces.length)
@@ -70,37 +32,23 @@ class App extends Component {
     let currentColor = this.state.nextColor
     let nextColor = b
     let currentCoords = []
-    let currentDimensions = []
-    if(currentPiece === 'Square') {
-      currentCoords = this.state.startingCoords.Square.slice()
-    } else if(currentPiece === 'I') {
-      currentCoords = this.state.startingCoords.I.slice()
-    } else {
-      currentCoords = this.state.startingCoords.all.slice()
-    }
     if(currentPiece) {
-      currentDimensions = tetris.pieces[currentPiece].c1.slice()
-      for(let i = 0; i < currentCoords.length; i++) {
-        let r = currentCoords[i]
-        for(let f = 0; f < r.length; f++) {
-          let c = r[f]
-          if(currentDimensions[i][f]) {
-            map[c[0]][c[1]] = currentColor
-          }
-        }
+      let m = 5
+      let d = 1
+      if(currentPiece === 'I') {
+        m = 4
+        d = 2
       }
+      tetris.pieces[currentPiece].initial.forEach((r, i) => {
+        r.forEach((c, f) => {
+          if(map[d + i][f + m] !== 1 && c !== 0){
+            map[d + i][f + m] = currentColor
+            currentCoords.push([d + i, f + m])
+          }
+        })
+      })
     }
-    // if(currentPiece) {
-    //   tetris.pieces[currentPiece].c1.forEach((r, i) => {
-    //     r.forEach((c, f) => {
-    //       if(map[1 + i][f + 5] !== 1 && c !== 0){
-    //         map[1 + i][f + 5] = currentColor
-    //         currentCoords.push([1 + i, f + 5])
-    //       }
-    //     })
-    //   })
-    // }
-    this.setState({nextPiece, currentPiece, direction: 'c1', nextColor, currentColor, currentCoords, currentDimensions})
+    this.setState({nextPiece, currentPiece, direction: 'c1', nextColor, currentColor, currentCoords})
   }
 
   startGame = () => {
@@ -114,116 +62,38 @@ class App extends Component {
     let map = this.state.map.slice()
     let previousCoords = this.state.currentCoords.slice()
     let currentCoords = []
-    let {currentDimensions} = this.state
     let end = false
     let next = false
-
     previousCoords.forEach(r => {
-      let newRow = []
-      r.forEach(c => {
-        // console.log('prev', c)
-        map[c[0]][c[1]] = 0
-        newRow.push([c[0] + 1, c[1]])
-      })
-      currentCoords.push(newRow)
+      map[r[0]][r[1]] = 0
+      currentCoords.push([r[0] + 1, r[1]])
     })
-    
-    // console.log(map)
     for(let i = 0; i < currentCoords.length; i++) {
       let r = currentCoords[i]
-      for(let f = 0; f < r.length; f++) {
-        let c = r[f]
-        // console.log('curr', c)
-        if(map[c[0]] && map[c[0]][c[1]] === 0) {
-          // console.log(currentDimensions)
-          if(currentDimensions[i][f]){
-            map[c[0]][c[1]] = this.state.currentColor
-          }
-        } else {
-          r.splice(f, 1)
-          f--
-          end = true
-        }
+      if(map[r[0]] && map[r[0]][r[1]] === 0){
+        map[r[0]][r[1]] = this.state.currentColor
+      } else {
+        currentCoords.splice(i, 1)
+        i--
+        end = true
       }
     }
-
-      if(end) {
-        currentCoords.forEach(r => {
-          r.forEach(c => {
-            map[c[0]][c[1]] = 0
-          })
-        })
-        previousCoords.forEach((r, i) => {
-          r.forEach((c, f) => {
-            if(currentDimensions[i][f]) {
-              map[c[0]][c[1]] = this.state.currentColor
-            }
-          })
-        })
-        next = true
-      } else {
-            currentCoords.forEach((r, i) => {
-              r.forEach((c, f) => {
-                if(currentDimensions[i][f]) {
-                  map[c[0]][c[1]] = this.state.currentColor
-                }
-              })
-            })
-
-      }
-    
-    // if(end) {
-    //   currentCoords.forEach(r => {
-    //     map[r[0]][r[1]] = 0
-    //   })
-    //   previousCoords.forEach(r => {
-    //     map[r[0]][r[1]] = this.state.currentColor
-    //   })
-    //   next = true
-    // } else {
-    //   currentCoords.forEach(r => {
-    //     map[r[0]][r[1]] = this.state.currentColor
-    //   })
-    // }
+    if(end) {
+      currentCoords.forEach(r => {
+        map[r[0]][r[1]] = 0
+      })
+      previousCoords.forEach(r => {
+        map[r[0]][r[1]] = this.state.currentColor
+      })
+      next = true
+    } else {
+      currentCoords.forEach(r => {
+        map[r[0]][r[1]] = this.state.currentColor
+      })
+    }
     this.setState({map, currentCoords})
     if(next) this.getNextPiece()
   }
-  // movePiece = () => {
-  //   let map = this.state.map.slice()
-  //   let previousCoords = this.state.currentCoords.slice()
-  //   let currentCoords = []
-  //   let end = false
-  //   let next = false
-  //   previousCoords.forEach(r => {
-  //     map[r[0]][r[1]] = 0
-  //     currentCoords.push([r[0] + 1, r[1]])
-  //   })
-  //   for(let i = 0; i < currentCoords.length; i++) {
-  //     let r = currentCoords[i]
-  //     if(map[r[0]] && map[r[0]][r[1]] === 0){
-  //       map[r[0]][r[1]] = this.state.currentColor
-  //     } else {
-  //       currentCoords.splice(i, 1)
-  //       i--
-  //       end = true
-  //     }
-  //   }
-  //   if(end) {
-  //     currentCoords.forEach(r => {
-  //       map[r[0]][r[1]] = 0
-  //     })
-  //     previousCoords.forEach(r => {
-  //       map[r[0]][r[1]] = this.state.currentColor
-  //     })
-  //     next = true
-  //   } else {
-  //     currentCoords.forEach(r => {
-  //       map[r[0]][r[1]] = this.state.currentColor
-  //     })
-  //   }
-  //   this.setState({map, currentCoords})
-  //   if(next) this.getNextPiece()
-  // }
 
   moveSide = (dir) => {
     let map = this.state.map.slice()
@@ -265,6 +135,39 @@ class App extends Component {
     }
   }
 
+  rotatePiece = () => {
+    let previousCoords = this.state.currentCoords.slice()
+    let map = this.state.map.slice()
+    let {direction, currentPiece} = this.state
+    let piece = tetris.pieces[currentPiece][direction]
+    // console.log('piece', piece)
+    let currentCoords = []
+    // console.log('before', previousCoords)
+    // console.log('before', map)
+    previousCoords.forEach(r => {
+      map[r[0]][r[1]] = 0
+    })
+    for(let i = 0; i < previousCoords.length; i++) {
+      let r = previousCoords[i]
+      let newCoords = [r[0] + piece[i][0], r[1] + piece[i][1]]
+      if(map[newCoords[0]] && map[newCoords[0]][newCoords[1]] === 0){
+
+      map[newCoords[0]][newCoords[1]] = this.state.currentColor
+      currentCoords.push(newCoords)
+      }
+    }
+
+    if(direction === 'c1') {
+      direction = 'c2'
+    } else if(direction === 'c2') {
+      direction = 'c3'
+    } else if(direction === 'c3') {
+      direction = 'c4'
+    } else if(direction === 'c4') direction = 'c1'
+
+    this.setState({direction, map, currentCoords})
+  }
+
   render() {
     let map = this.state.map.map((r, f) => {
       let row = r.map((c, i) => {
@@ -294,6 +197,7 @@ class App extends Component {
         <button onClick={() => this.moveSide('left')}>Left</button>
         <button onClick={this.movePiece}>Move</button>
         <button onClick={() => this.moveSide('right')}>Right</button>
+        <button onClick={() => this.rotatePiece()}>Rotate</button>
       </div>
         {map}
       </div>
