@@ -8,6 +8,7 @@ class App extends Component {
     super() 
     this.state = {
       map: tetris.map,
+      next: tetris.next,
       pieces: ['L1', 'L2', 'Z1', 'Z2', 't', 'I', 'Square'],
       colors: ['black', 'gray', 'purple', 'red', 'blue', 'yellow', 'green', 'orange'],
       nextPiece: '',
@@ -17,13 +18,18 @@ class App extends Component {
       currentColor: '',
       start: false,
       currentCoords: [],
+      autoMove: null,
+      initialSpeed: 1000,
+      speed: 1000, 
+      score: 0,
     }
   }
   componentDidMount() {
     this.getNextPiece()
   }
   getNextPiece = () => {
-    let {pieces, map} = this.state
+    let {pieces, map, start} = this.state
+    let next = this.state.next.slice()
     let a = ~~(Math.random() * pieces.length)
     let b = ~~(Math.random() * 6) + 2
     let nextPiece = pieces[a]
@@ -46,6 +52,26 @@ class App extends Component {
           }
         })
       })
+      let j = 3
+      let k = 2
+      if(nextPiece === 'I') {
+        j = 2
+        k = 2
+      }
+      next.forEach((r, a) => {
+        r.forEach((c, b) => {
+          if(c !== 1){
+            next[a][b] = 0
+          }
+        })
+      })
+      tetris.pieces[nextPiece].initial.forEach((r, i) => {
+        r.forEach((c, f) => {
+          if(next[k + i][f + j] !== 1 && c !== 0){
+            next[k + i][f + j] = nextColor
+          }
+        })
+      })
     }
     this.setState({nextPiece, currentPiece, direction: 'c1', nextColor, currentColor, currentCoords})
   }
@@ -53,7 +79,9 @@ class App extends Component {
   startGame = () => {
     if(!this.state.start) {
       this.getNextPiece()
-      this.setState({start: true})
+      let a = setInterval(this.movePiece, this.state.speed)
+      // let a = ''
+      this.setState({start: true, autoMove: a})
     }
   }
 
@@ -63,6 +91,7 @@ class App extends Component {
     let currentCoords = []
     let end = false
     let next = false
+    let lose = false
     previousCoords.forEach(r => {
       map[r[0]][r[1]] = 0
       currentCoords.push([r[0] + 1, r[1]])
@@ -81,9 +110,21 @@ class App extends Component {
       currentCoords.forEach(r => {
         map[r[0]][r[1]] = 0
       })
+      let up = []
       previousCoords.forEach(r => {
         map[r[0]][r[1]] = this.state.currentColor
+        up.push([r[0] - 1, r[1]])
       })
+      up.forEach(r => {
+        if(map[r[0]][r[1]] === 1) {
+          lose = true
+        }
+      })
+      if(lose) {
+        clearInterval(this.state.autoMove)
+        alert("you fail!")
+      }
+
       next = true
     } else {
       currentCoords.forEach(r => {
@@ -91,7 +132,33 @@ class App extends Component {
       })
     }
     this.setState({map, currentCoords})
-    if(next) this.getNextPiece()
+    if(next) {
+      let {checkRows, getNextPiece} = this
+      checkRows().then(() => {
+        getNextPiece()
+      })
+    }
+  }
+
+  checkRows = async () => {
+    let map = this.state.map.slice()
+    let { score, initialSpeed, speed } = this.state
+    let count = 0
+    clearInterval(this.state.autoMove)
+    for(let i = map.length - 2; i >= 1; i--) {
+      if(map[i].indexOf(0) === -1) {
+        map.splice(i, 1)
+        count++
+      }
+    }
+    let newRows = []
+    for(let i = 0; i < count; i++) {
+      newRows.push([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1])
+    }
+    score += count * 10
+    speed = initialSpeed - ~~(score / 100) * 100
+    map.splice(1,0, ...newRows)
+    this.setState({map, score, autoMove: setInterval(this.movePiece, speed), speed})
   }
 
   moveSide = (dir) => {
@@ -127,9 +194,6 @@ class App extends Component {
       })
       this.setState({map, currentCoords: previousCoords})
     } else {
-      currentCoords.forEach(r => {
-        map[r[0]][r[1]] = this.state.currentColor
-      })
       this.setState({map, currentCoords})
     }
   }
@@ -138,33 +202,63 @@ class App extends Component {
     let previousCoords = this.state.currentCoords.slice()
     let map = this.state.map.slice()
     let {direction, currentPiece} = this.state
-    let piece = tetris.pieces[currentPiece][direction]
-    // console.log('piece', piece)
+    if(currentPiece !== 'Square') {
+      let piece = tetris.pieces[currentPiece][direction]
+      let currentCoords = []
+      let move = false
+      previousCoords.forEach(r => {
+        map[r[0]][r[1]] = 0
+      })
+      for(let i = 0; i < previousCoords.length; i++) {
+        let r = previousCoords[i]
+        let newCoords = [r[0] + piece[i][0], r[1] + piece[i][1]]
+        if(map[newCoords[0]] && map[newCoords[0]][newCoords[1]] === 0){
+          currentCoords.push(newCoords)
+          map[newCoords[0]][newCoords[1]] = this.state.currentColor
+        } 
+      }
+
+      if(direction === 'c1') {
+        direction = 'c2'
+      } else if(direction === 'c2') {
+        direction = 'c3'
+      } else if(direction === 'c3') {
+        direction = 'c4'
+      } else if(direction === 'c4') direction = 'c1'
+
+      this.setState({direction, map, currentCoords})
+    }
+  }
+
+  moveToBottom = () => {
+    let map = this.state.map.slice()
+    let previousCoords = this.state.currentCoords.slice()
     let currentCoords = []
-    // console.log('before', previousCoords)
-    // console.log('before', map)
+    let end = false
+    let next = false
+    let lose = false
+    console.log('before', previousCoords)
     previousCoords.forEach(r => {
       map[r[0]][r[1]] = 0
+      r[0] += 1
     })
-    for(let i = 0; i < previousCoords.length; i++) {
-      let r = previousCoords[i]
-      let newCoords = [r[0] + piece[i][0], r[1] + piece[i][1]]
-      if(map[newCoords[0]] && map[newCoords[0]][newCoords[1]] === 0){
 
-      map[newCoords[0]][newCoords[1]] = this.state.currentColor
-      currentCoords.push(newCoords)
-      }
+    
+
+    console.log('after', previousCoords)
+    
+  }
+
+  handleKeyDown = (e) => {
+    if('ArrowLeft' === e.key) {
+      this.moveSide('left')
+    } else if ('ArrowRight' === e.key) {
+      this.moveSide('right')
+    } else if ('ArrowDown' === e.key) {
+      this.movePiece()
+    } else if ('ArrowUp' === e.key) {
+      this.rotatePiece()
     }
-
-    if(direction === 'c1') {
-      direction = 'c2'
-    } else if(direction === 'c2') {
-      direction = 'c3'
-    } else if(direction === 'c3') {
-      direction = 'c4'
-    } else if(direction === 'c4') direction = 'c1'
-
-    this.setState({direction, map, currentCoords})
   }
 
   render() {
@@ -190,15 +284,40 @@ class App extends Component {
         </div>
       )
     })
+    let next = this.state.next.map((r, f) => {
+      let row = r.map((c, i) => {
+        if(c === 1) {
+          return (
+            <div key={i} className='cube' style={{backgroundColor: 'gray'}}></div>
+          )
+        } else if(c === 0) {
+          return (
+            <div key={i} className='cube' style={{backgroundColor: 'black'}}></div>
+          )
+        } else {
+          return (
+            <div key={i} className='cube' style={{backgroundColor: this.state.colors[c]}}></div>
+          )
+        }
+      })
+      return (
+        <div key={f} style={{display: 'flex', flexDirection: 'row'}}>
+          {row}
+        </div>
+      )
+    })
+
     return (
-      <div onClick={this.startGame} style={{height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', backgroundColor: 'purple'}}>
-      <div style={{display: 'flex', flexDirection: 'row'}}>
-        <button onClick={() => this.moveSide('left')}>Left</button>
-        <button onClick={this.movePiece}>Move</button>
-        <button onClick={() => this.moveSide('right')}>Right</button>
-        <button onClick={() => this.rotatePiece()}>Rotate</button>
-      </div>
+      <div>
+      <div onClick={this.startGame} style={{height: '100vh', display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: 'purple'}}  tabIndex="0" onKeyDown={this.handleKeyDown}>
+      <button onClick={this.moveToBottom}>Move</button>
+      <div>
         {map}
+      </div>
+      <div style={{paddingTop: '50px', paddingLeft: '25px', alignSelf: 'flex-start'}}>
+        {next}
+      </div>
+      </div>
       </div>
     );
   }
