@@ -311,9 +311,9 @@ class App extends Component {
       <div>
         {map}
       </div>
-      {/* <div style={{paddingTop: '50px', paddingLeft: '25px', alignSelf: 'flex-start'}}>
+      <div style={{paddingTop: '50px', paddingLeft: '25px', alignSelf: 'flex-start'}}>
         {next}
-      </div> */}
+      </div>
       </div>
       </div>
     );
