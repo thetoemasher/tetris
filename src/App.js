@@ -238,15 +238,12 @@ class App extends Component {
     let next = false
     let lose = false
     console.log('before', previousCoords)
-    previousCoords.forEach(r => {
+    let nextCoords = []
+    previousCoords.forEach((r, i) => {
       map[r[0]][r[1]] = 0
-      r[0] += 1
+    // nextCoords.push([r[0] + 1, r[1]])
+    previousCoords[i] = [r[0] + 1, r[1]]
     })
-
-    
-
-    console.log('after', previousCoords)
-    
   }
 
   handleKeyDown = (e) => {
@@ -310,13 +307,13 @@ class App extends Component {
     return (
       <div>
       <div onClick={this.startGame} style={{height: '100vh', display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: 'purple'}}  tabIndex="0" onKeyDown={this.handleKeyDown}>
-      <button onClick={this.moveToBottom}>Move</button>
+      {/* <button onClick={this.moveToBottom}>Move</button> */}
       <div>
         {map}
       </div>
-      <div style={{paddingTop: '50px', paddingLeft: '25px', alignSelf: 'flex-start'}}>
+      {/* <div style={{paddingTop: '50px', paddingLeft: '25px', alignSelf: 'flex-start'}}>
         {next}
-      </div>
+      </div> */}
       </div>
       </div>
     );
