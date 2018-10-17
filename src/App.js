@@ -17,6 +17,7 @@ class App extends Component {
       nextColor: '',
       currentColor: '',
       start: false,
+      end: false,
       currentCoords: [],
       autoMove: null,
       initialSpeed: 1000,
@@ -28,7 +29,7 @@ class App extends Component {
     this.getNextPiece()
   }
   getNextPiece = () => {
-    let {pieces, map, start} = this.state
+    let {pieces, map} = this.state
     let next = this.state.next.slice()
     let a = ~~(Math.random() * pieces.length)
     let b = ~~(Math.random() * 6) + 2
@@ -86,164 +87,219 @@ class App extends Component {
   }
 
   movePiece = () => {
-    let map = this.state.map.slice()
-    let previousCoords = this.state.currentCoords.slice()
-    let currentCoords = []
-    let end = false
-    let next = false
-    let lose = false
-    previousCoords.forEach(r => {
-      map[r[0]][r[1]] = 0
-      currentCoords.push([r[0] + 1, r[1]])
-    })
-    for(let i = 0; i < currentCoords.length; i++) {
-      let r = currentCoords[i]
-      if(map[r[0]] && map[r[0]][r[1]] === 0){
-        map[r[0]][r[1]] = this.state.currentColor
-      } else {
-        currentCoords.splice(i, 1)
-        i--
-        end = true
-      }
-    }
-    if(end) {
-      currentCoords.forEach(r => {
-        map[r[0]][r[1]] = 0
-      })
-      let up = []
+    if(!this.state.end) {
+      let map = this.state.map.slice()
+      let previousCoords = this.state.currentCoords.slice()
+      let currentCoords = []
+      let end = false
+      let next = false
+      let lose = false
       previousCoords.forEach(r => {
-        map[r[0]][r[1]] = this.state.currentColor
-        up.push([r[0] - 1, r[1]])
+        map[r[0]][r[1]] = 0
+        currentCoords.push([r[0] + 1, r[1]])
       })
-      up.forEach(r => {
-        if(map[r[0]][r[1]] === 1) {
-          lose = true
+      for(let i = 0; i < currentCoords.length; i++) {
+        let r = currentCoords[i]
+        if(map[r[0]] && map[r[0]][r[1]] === 0){
+          map[r[0]][r[1]] = this.state.currentColor
+        } else {
+          currentCoords.splice(i, 1)
+          i--
+          end = true
         }
-      })
-      if(lose) {
-        clearInterval(this.state.autoMove)
-        alert("you fail!")
       }
+      if(end) {
+        currentCoords.forEach(r => {
+          map[r[0]][r[1]] = 0
+        })
+        let up = []
+        previousCoords.forEach(r => {
+          map[r[0]][r[1]] = this.state.currentColor
+          up.push([r[0] - 1, r[1]])
+        })
+        up.forEach(r => {
+          if(map[r[0]][r[1]] === 1) {
+            lose = true
+          }
+        })
+        if(lose) {
+          clearInterval(this.state.autoMove)
+          this.setState({end: true})
+          alert("you fail!")
+        }
 
-      next = true
-    } else {
-      currentCoords.forEach(r => {
-        map[r[0]][r[1]] = this.state.currentColor
-      })
-    }
-    this.setState({map, currentCoords})
-    if(next) {
-      let {checkRows, getNextPiece} = this
-      checkRows().then(() => {
-        getNextPiece()
-      })
+        next = true
+      } else {
+        currentCoords.forEach(r => {
+          map[r[0]][r[1]] = this.state.currentColor
+        })
+      }
+      this.setState({map, currentCoords})
+      if(next) {
+        let {checkRows, getNextPiece} = this
+        checkRows().then(() => {
+          getNextPiece()
+        })
+      }
     }
   }
 
   checkRows = async () => {
-    let map = this.state.map.slice()
-    let { score, initialSpeed, speed } = this.state
-    let count = 0
-    clearInterval(this.state.autoMove)
-    for(let i = map.length - 2; i >= 1; i--) {
-      if(map[i].indexOf(0) === -1) {
-        map.splice(i, 1)
-        count++
+    if(!this.state.end) {
+      let map = this.state.map.slice()
+      let { score, initialSpeed, speed } = this.state
+      let count = 0
+      clearInterval(this.state.autoMove)
+      for(let i = map.length - 2; i >= 1; i--) {
+        if(map[i].indexOf(0) === -1) {
+          map.splice(i, 1)
+          count++
+        }
       }
+      let newRows = []
+      for(let i = 0; i < count; i++) {
+        newRows.push([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1])
+      }
+      score += count * 10
+      speed = initialSpeed - ~~(score / 100) * 100
+      map.splice(1,0, ...newRows)
+      this.setState({map, score, autoMove: setInterval(this.movePiece, speed), speed})
     }
-    let newRows = []
-    for(let i = 0; i < count; i++) {
-      newRows.push([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1])
-    }
-    score += count * 10
-    speed = initialSpeed - ~~(score / 100) * 100
-    map.splice(1,0, ...newRows)
-    this.setState({map, score, autoMove: setInterval(this.movePiece, speed), speed})
   }
 
   moveSide = (dir) => {
-    let map = this.state.map.slice()
-    let previousCoords = this.state.currentCoords.slice()
-    let currentCoords = []
-    let end = false
-    previousCoords.forEach(r => {
-      let newCoord = []
-      map[r[0]][r[1]] = 0
-      if(dir === 'left') newCoord = [r[0], r[1] - 1]
-      if(dir === 'right') newCoord = [r[0], r[1] + 1]
-      currentCoords.push(newCoord)
-    })
-    for(let i = 0; i < currentCoords.length; i++) {
-      let r = currentCoords[i]
-      if(map[r[0]] && map[r[0]][r[1]] === 0){
-        map[r[0]][r[1]] = this.state.currentColor
-      } else if (r[0] === 20) {
-        end = true
-      } else {
-        currentCoords.splice(i, 1)
-        i--
-        end = true
-      }
-    }
-    if(end) {
-      currentCoords.forEach(r => {
-        map[r[0]][r[1]] = 0
-      })
+    if(!this.state.end) {
+      let map = this.state.map.slice()
+      let previousCoords = this.state.currentCoords.slice()
+      let currentCoords = []
+      let end = false
       previousCoords.forEach(r => {
-        map[r[0]][r[1]] = this.state.currentColor
+        let newCoord = []
+        map[r[0]][r[1]] = 0
+        if(dir === 'left') newCoord = [r[0], r[1] - 1]
+        if(dir === 'right') newCoord = [r[0], r[1] + 1]
+        currentCoords.push(newCoord)
       })
-      this.setState({map, currentCoords: previousCoords})
-    } else {
-      this.setState({map, currentCoords})
+      for(let i = 0; i < currentCoords.length; i++) {
+        let r = currentCoords[i]
+        if(map[r[0]] && map[r[0]][r[1]] === 0){
+          map[r[0]][r[1]] = this.state.currentColor
+        } else if (r[0] === 20) {
+          end = true
+        } else {
+          currentCoords.splice(i, 1)
+          i--
+          end = true
+        }
+      }
+      if(end) {
+        currentCoords.forEach(r => {
+          map[r[0]][r[1]] = 0
+        })
+        previousCoords.forEach(r => {
+          map[r[0]][r[1]] = this.state.currentColor
+        })
+        this.setState({map, currentCoords: previousCoords})
+      } else {
+        this.setState({map, currentCoords})
+      }
     }
   }
 
   rotatePiece = () => {
-    let previousCoords = this.state.currentCoords.slice()
-    let map = this.state.map.slice()
-    let {direction, currentPiece} = this.state
-    if(currentPiece !== 'Square') {
-      let piece = tetris.pieces[currentPiece][direction]
-      let currentCoords = []
-      let move = false
-      previousCoords.forEach(r => {
-        map[r[0]][r[1]] = 0
-      })
-      for(let i = 0; i < previousCoords.length; i++) {
-        let r = previousCoords[i]
-        let newCoords = [r[0] + piece[i][0], r[1] + piece[i][1]]
-        if(map[newCoords[0]] && map[newCoords[0]][newCoords[1]] === 0){
+    if(!this.state.end) {
+      let previousCoords = this.state.currentCoords.slice()
+      let map = this.state.map.slice()
+      let {direction, currentPiece} = this.state
+      let end = false
+      if(currentPiece !== 'Square') {
+        let piece = tetris.pieces[currentPiece][direction]
+        let currentCoords = []
+        previousCoords.forEach(r => {
+          map[r[0]][r[1]] = 0
+        })
+
+        previousCoords.forEach((r, i) => {
+          let newCoords = [r[0] + piece[i][0], r[1] + piece[i][1]]
           currentCoords.push(newCoords)
-          map[newCoords[0]][newCoords[1]] = this.state.currentColor
-        } 
+        })
+
+        for(let i = 0; i < currentCoords.length; i++) {
+          let r = currentCoords[i]
+          if(map[r[0]] && map[r[0]][r[1]] === 0){
+            map[r[0]][r[1]] = this.state.currentColor
+          } else {
+            currentCoords.splice(i, 1)
+            i--
+            end = true
+          }
+        }
+
+        if(end) {
+        currentCoords.forEach(r => {
+          map[r[0]][r[1]] = 0
+        })
+        previousCoords.forEach(r => {
+          map[r[0]][r[1]] = this.state.currentColor
+        })
+        this.setState({map, currentCoords: previousCoords})
+      } else {
+            if(direction === 'c1') {
+              direction = 'c2'
+            } else if(direction === 'c2') {
+              direction = 'c3'
+            } else if(direction === 'c3') {
+              direction = 'c4'
+            } else if(direction === 'c4') direction = 'c1'
+        this.setState({map, currentCoords, direction})
       }
 
-      if(direction === 'c1') {
-        direction = 'c2'
-      } else if(direction === 'c2') {
-        direction = 'c3'
-      } else if(direction === 'c3') {
-        direction = 'c4'
-      } else if(direction === 'c4') direction = 'c1'
-
-      this.setState({direction, map, currentCoords})
+        // this.setState({direction, map, currentCoords})
+      }
     }
   }
 
   moveToBottom = () => {
-    let map = this.state.map.slice()
-    let previousCoords = this.state.currentCoords.slice()
-    let currentCoords = []
-    let end = false
-    let next = false
-    let lose = false
-    console.log('before', previousCoords)
-    let nextCoords = []
-    previousCoords.forEach((r, i) => {
-      map[r[0]][r[1]] = 0
-    // nextCoords.push([r[0] + 1, r[1]])
-    previousCoords[i] = [r[0] + 1, r[1]]
-    })
+    if(!this.state.end) {
+      let map = this.state.map.slice()
+      let previousCoords = this.state.currentCoords.slice()
+      let {movePiece} = this
+      let currentCoords = []
+      let end = false
+      let next = false
+      let lose = false
+      clearInterval(this.state.autoMove)
+      while(!end) {
+        previousCoords.forEach(r => {
+          map[r[0]][r[1]] = 0
+          currentCoords.push([r[0] + 1, r[1]])
+        })
+        for(let i = 0; i < currentCoords.length; i++) {
+          let r = currentCoords[i]
+          if(map[r[0]] && map[r[0]][r[1]] === 0){
+            // map[r[0]][r[1]] = this.state.currentColor
+          } else {
+            currentCoords.splice(i, 1)
+            i--
+            end = true
+          }
+        }
+        if(!end) {
+          previousCoords = currentCoords.slice()
+          currentCoords = []
+        }
+      }
+      if(end) {
+        previousCoords.forEach(r => {
+          map[r[0]][r[1]] = this.state.currentColor
+        })
+      }
+      this.setState({previousCoords, map})
+      this.checkRows().then(() => {
+        this.getNextPiece()
+      })
+      // let autoMove = setInterval(this.movePiece, this.state.speed)
+    }
   }
 
   handleKeyDown = (e) => {
@@ -255,6 +311,8 @@ class App extends Component {
       this.movePiece()
     } else if ('ArrowUp' === e.key) {
       this.rotatePiece()
+    } else if (' ' === e.key) {
+      this.moveToBottom()
     }
   }
 
@@ -305,15 +363,24 @@ class App extends Component {
     })
 
     return (
-      <div>
       <div onClick={this.startGame} style={{height: '100vh', display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: 'purple'}}  tabIndex="0" onKeyDown={this.handleKeyDown}>
       {/* <button onClick={this.moveToBottom}>Move</button> */}
       <div>
         {map}
       </div>
-      <div style={{paddingTop: '50px', paddingLeft: '25px', alignSelf: 'flex-start'}}>
-        {next}
-      </div>
+      <div style={{height: '572px', marginLeft: '50px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'}}>
+        <div style={{}}>{next}</div>
+        <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
+          Score: {this.state.score}
+        </div>
+        <div>
+          <p>Click anywhere to start</p>
+          <p>Up Arrow = Rotate</p>
+          <p>Left Arrow = Move Left</p>
+          <p>Right Arrow = Move Right</p>
+          <p>Down Arrow = Move Down</p>
+          <p>Space = Jump to Bottom</p>
+        </div>
       </div>
       </div>
     );
